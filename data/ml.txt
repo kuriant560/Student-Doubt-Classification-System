@@ -1,0 +1,6 @@
+Machine Learning is a subset of artificial intelligence that involves training computers to learn from data and improve over time without being explicitly programmed.
+Supervised learning involves training a model on a labeled dataset, where the algorithm learns the mapping from input features to output targets.
+Unsupervised learning finds hidden patterns or intrinsic structures within unlabeled data, common techniques including k-means clustering.
+Linear Regression models the relationship between a dependent continuous variable and one or more explanatory independent variables.
+Decision Trees use a tree-like model of decisions and their possible consequences, functioning by splitting the data on specific feature thresholds to achieve the best prediction.
+Overfitting occurs when a model learns the detail and noise in the training data to the extent that it negatively impacts the performance of the model on new data.

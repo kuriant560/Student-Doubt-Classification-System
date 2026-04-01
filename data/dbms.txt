@@ -1,0 +1,6 @@
+A Database Management System (DBMS) is software that interacts with end users, applications, and the database itself to capture and analyze the data.
+Normalization in DBMS is a process of organizing the data in a database to avoid data redundancy, insertion anomaly, update anomaly & deletion anomaly.
+A Relational Database Management System (RDBMS) is a DBMS designed specifically for relational databases. Examples include MySQL, PostgreSQL, and Oracle.
+SQL (Structured Query Language) is a standard language used for interacting with relational databases, allowing users to select, insert, update, and delete data.
+A transaction is a single unit of logic or work, sometimes made up of multiple operations. Transactions must have ACID properties: Atomicity, Consistency, Isolation, and Durability.
+Concurrency control in DBMS ensures that multiple concurrent transactions do not negatively impact database integrity.

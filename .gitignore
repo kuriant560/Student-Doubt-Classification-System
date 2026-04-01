@@ -1,0 +1,17 @@
+# Environment Variables
+.env
+
+# Virtual Environments
+venv/
+venv_old_rename_backup/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+
+# OS
+.DS_Store

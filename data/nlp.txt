@@ -1,0 +1,6 @@
+Natural Language Processing (NLP) focuses on the interaction between computers and human language, particularly how to program computers to process and analyze large amounts of natural language data.
+Tokenization is the process of breaking down a large body of text into smaller components such as words or sentences, called tokens.
+A Bag-of-Words (BoW) model represents text data by counting the frequency of words in a document but ignoring order or structure.
+TF-IDF stands for Term Frequency-Inverse Document Frequency. It evaluates how relevant a word is to a document in a collection of documents by weighing word frequency against document frequency.
+Stop words are commonly used words (such as 'the', 'a', 'an', 'in') that a search engine has been programmed to ignore, both when indexing entries for searching and when retrieving them as the result of a search query.
+Embeddings such as Word2Vec and GloVe represent words as dense mathematical vectors, capturing semantic meaning and context.

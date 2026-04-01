@@ -1,0 +1,6 @@
+Data Structures are specialized formats for organizing, processing, retrieving, and storing data. Common ones include arrays, linked lists, stacks, and queues.
+An Array is a linear data structure that collects elements of the same data type and stores them in contiguous and adjacent memory locations.
+A Linked List is a linear data structure, in which the elements are not stored at contiguous memory locations. The elements in a linked list are linked using pointers.
+A Stack functions on a Last-In-First-Out (LIFO) principle, where elements are added and removed from the same end, called the top.
+A Queue operates on a First-In-First-Out (FIFO) principle, similar to a real-world queue, where the first element added is the first one retrieved.
+Trees are hierarchical data structures used to represent hierarchical relationships. A popular tree structure is the Binary Search Tree, which allows fast lookup, addition, and removal of items.
