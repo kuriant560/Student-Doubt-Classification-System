@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import re
+import html
 from datetime import datetime
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -33,6 +34,333 @@ st.set_page_config(
 DATA_DIR = "data"
 THRESHOLD = 0.15
 OLLAMA_DOWNLOAD_URL = "https://ollama.com/download"
+
+
+def inject_styles():
+    st.markdown(
+        """
+        <style>
+        :root {
+            --bg: #07111f;
+            --bg-soft: #101f33;
+            --panel: rgba(10, 21, 36, 0.82);
+            --panel-strong: rgba(16, 31, 51, 0.92);
+            --border: rgba(143, 180, 255, 0.18);
+            --text: #f5f7fb;
+            --muted: #9eb2c9;
+            --accent: #ff8f5c;
+            --accent-2: #61d0ff;
+            --warn: #ffd166;
+        }
+
+        .stApp {
+            background:
+                radial-gradient(circle at top left, rgba(97, 208, 255, 0.20), transparent 28%),
+                radial-gradient(circle at top right, rgba(255, 143, 92, 0.20), transparent 26%),
+                linear-gradient(180deg, #08111d 0%, #091523 55%, #07111f 100%);
+            color: var(--text);
+        }
+
+        [data-testid="stSidebar"] {
+            background:
+                linear-gradient(180deg, rgba(13, 24, 40, 0.97) 0%, rgba(10, 18, 31, 0.97) 100%);
+            border-right: 1px solid var(--border);
+        }
+
+        .block-container {
+            padding-top: 2.2rem;
+            padding-bottom: 3rem;
+            max-width: 1180px;
+        }
+
+        h1, h2, h3 {
+            font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-shell {
+            position: relative;
+            overflow: hidden;
+            padding: 2rem 2rem 1.8rem 2rem;
+            border-radius: 28px;
+            background:
+                linear-gradient(140deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+                linear-gradient(135deg, rgba(10, 24, 42, 0.96), rgba(16, 31, 51, 0.88));
+            border: 1px solid var(--border);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+            margin-bottom: 1.4rem;
+        }
+
+        .hero-shell::after {
+            content: "";
+            position: absolute;
+            inset: auto -10% -40% auto;
+            width: 260px;
+            height: 260px;
+            background: radial-gradient(circle, rgba(255, 143, 92, 0.24), transparent 64%);
+            pointer-events: none;
+        }
+
+        .hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: var(--accent-2);
+            margin-bottom: 0.9rem;
+        }
+
+        .hero-title {
+            font-size: 3.05rem;
+            line-height: 0.98;
+            font-weight: 800;
+            margin: 0;
+            max-width: 8.5em;
+        }
+
+        .hero-copy {
+            font-size: 1.03rem;
+            line-height: 1.7;
+            color: var(--muted);
+            max-width: 44rem;
+            margin: 0.9rem 0 1.15rem 0;
+        }
+
+        .hero-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+        }
+
+        .hero-pill, .subject-pill {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid rgba(143, 180, 255, 0.16);
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 999px;
+            padding: 0.45rem 0.85rem;
+            font-size: 0.86rem;
+            color: var(--text);
+        }
+
+        .subject-pill {
+            margin: 0 0.45rem 0.45rem 0;
+            background: rgba(97, 208, 255, 0.08);
+        }
+
+        .input-shell, .result-shell {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 1.15rem 1.2rem 1.25rem 1.2rem;
+            box-shadow: 0 14px 44px rgba(0, 0, 0, 0.20);
+        }
+
+        .section-label {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .mini-note {
+            color: var(--muted);
+            font-size: 0.92rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-card {
+            height: 100%;
+            padding: 1rem;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
+            border: 1px solid rgba(143, 180, 255, 0.14);
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            margin-bottom: 0.45rem;
+        }
+
+        .stat-value {
+            color: var(--text);
+            font-size: 1.05rem;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        .answer-card {
+            border-radius: 22px;
+            border: 1px solid rgba(143, 180, 255, 0.16);
+            padding: 1.2rem 1.25rem;
+            margin-top: 0.8rem;
+            white-space: pre-wrap;
+            line-height: 1.8;
+        }
+
+        .answer-card.retrieval {
+            background: linear-gradient(180deg, rgba(97, 208, 255, 0.10), rgba(255, 255, 255, 0.03));
+        }
+
+        .answer-card.fallback {
+            background: linear-gradient(180deg, rgba(255, 209, 102, 0.10), rgba(255, 255, 255, 0.03));
+        }
+
+        .notice-card {
+            margin-top: 0.9rem;
+            padding: 0.95rem 1rem;
+            border-radius: 16px;
+            background: rgba(255, 209, 102, 0.11);
+            border: 1px solid rgba(255, 209, 102, 0.20);
+            color: #ffe6a6;
+        }
+
+        .error-card {
+            margin-top: 0.9rem;
+            padding: 0.95rem 1rem;
+            border-radius: 16px;
+            background: rgba(255, 105, 97, 0.12);
+            border: 1px solid rgba(255, 105, 97, 0.24);
+            color: #ffd1ce;
+        }
+
+        .history-card {
+            margin-top: 0.9rem;
+            padding: 1rem 1.05rem;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
+            border: 1px solid rgba(143, 180, 255, 0.14);
+        }
+
+        .history-meta {
+            color: var(--accent-2);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 0.55rem;
+        }
+
+        .history-question {
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 0.45rem;
+        }
+
+        .history-answer {
+            color: var(--muted);
+            line-height: 1.65;
+        }
+
+        .stTextArea textarea {
+            min-height: 170px;
+            border-radius: 18px;
+            border: 1px solid rgba(143, 180, 255, 0.14);
+            background: rgba(8, 16, 28, 0.86);
+            color: var(--text);
+            font-size: 1rem;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+        }
+
+        .stTextArea label, .stFileUploader label, .stButton button {
+            font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+        }
+
+        .stButton button {
+            border: 0;
+            border-radius: 999px;
+            padding: 0.78rem 1.3rem;
+            font-weight: 700;
+            color: #08111d;
+            background: linear-gradient(135deg, #ffb36b 0%, #ff7f67 100%);
+            box-shadow: 0 12px 26px rgba(255, 127, 103, 0.32);
+        }
+
+        .stButton button:hover {
+            color: #08111d;
+            border: 0;
+        }
+
+        [data-testid="stExpander"] {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        @media (max-width: 900px) {
+            .hero-title {
+                font-size: 2.35rem;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_hero(subject_count):
+    st.markdown(
+        f"""
+        <section class="hero-shell">
+            <div class="hero-kicker">Adaptive Study Assistant</div>
+            <h1 class="hero-title">Student Doubt Classification System</h1>
+            <p class="hero-copy">
+                Search your notes, uploaded files, and built-in subject material through a retrieval-first workflow.
+                When the match is weak, the interface can switch to local AI fallback through Ollama.
+            </p>
+            <div class="hero-strip">
+                <span class="hero-pill">TF-IDF retrieval engine</span>
+                <span class="hero-pill">{subject_count} subject sources loaded</span>
+                <span class="hero-pill">TXT, PDF, DOCX, PPTX support</span>
+            </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_stat_card(label, value):
+    st.markdown(
+        f"""
+        <div class="stat-card">
+            <div class="stat-label">{html.escape(label)}</div>
+            <div class="stat-value">{html.escape(value)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_answer_card(text, tone):
+    escaped = html.escape(text).replace("\n", "<br>")
+    st.markdown(
+        f'<div class="answer-card {tone}">{escaped}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_notice(message, tone="notice"):
+    css_class = "error-card" if tone == "error" else "notice-card"
+    st.markdown(
+        f'<div class="{css_class}">{html.escape(message)}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_history_item(entry):
+    answer_preview = entry["answer"]
+    if len(answer_preview) > 220:
+        answer_preview = answer_preview[:220].rstrip() + "..."
+    with st.sidebar.expander(entry["query"], expanded=False):
+        st.caption(f'{entry["timestamp"]} • {entry["decision"]}')
+        st.markdown(f'**Subject:** `{entry["subject"]}`')
+        st.markdown("**Answer Preview**")
+        st.write(answer_preview)
 
 def chunk_text(text, chunk_size=500):
     """Character-based chunking."""
@@ -208,6 +536,7 @@ def fallback_unavailable_message():
 
 # Session State Init
 if 'history' not in st.session_state: st.session_state.history = []
+inject_styles()
 
 # ================================
 # SIDEBAR UI
@@ -222,7 +551,10 @@ uploaded_files = st.sidebar.file_uploader(
 st.sidebar.markdown("### Uploaded Documents")
 if uploaded_files:
     for f in uploaded_files:
-        st.sidebar.markdown(f"- {f.name}")
+        st.sidebar.markdown(
+            f'<div class="subject-pill">{html.escape(f.name)}</div>',
+            unsafe_allow_html=True,
+        )
 else:
     st.sidebar.info("Using default files from data/ folder.")
 
@@ -241,18 +573,29 @@ st.sidebar.markdown("### Detected Subjects")
 unique_subjects = sorted(list(set([os.path.splitext(s)[0].replace("_", " ") for s in sources])))
 if unique_subjects:
     for sub in unique_subjects:
-        st.sidebar.markdown(f"- {sub}")
+        st.sidebar.markdown(
+            f'<div class="subject-pill">{html.escape(sub)}</div>',
+            unsafe_allow_html=True,
+        )
 else:
-    st.sidebar.markdown("- General")
+    st.sidebar.markdown('<div class="subject-pill">General</div>', unsafe_allow_html=True)
+
+st.sidebar.markdown("### Recent Searches")
+if st.session_state.history:
+    for entry in st.session_state.history:
+        render_history_item(entry)
+else:
+    st.sidebar.info("Your recent searches will appear here.")
 
 # ================================
 # MAIN SCREEN UI
 # ================================
-st.title("Student Doubt Classification System")
-st.markdown("### Hybrid NLP (Document Retrieval + AI Fallback)")
-
-# System Flow Visual
-st.markdown("`Input → Preprocessing → TF-IDF → Similarity → Decision → Output`")
+render_hero(len(unique_subjects) if unique_subjects else 1)
+st.markdown('<div class="section-label">Question Workspace</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="mini-note">Ask a concept question, process uploaded notes, and let the app decide whether retrieval or local AI should answer it.</div>',
+    unsafe_allow_html=True,
+)
 st.divider()
 
 # Input
@@ -262,8 +605,6 @@ if st.button("Get Answer", type="primary"):
     if not query.strip():
         st.warning("Please enter a question.")
     else:
-        st.session_state.history.append({"query": query, "timestamp": datetime.now().strftime("%H:%M:%S")})
-        
         with st.spinner("Processing using NLP..."):
             
             # Step 5 Validation
@@ -309,18 +650,37 @@ Text:
                     except Exception:
                         answer_text = format_answer(trimmed)
 
+        st.session_state.history.insert(
+            0,
+            {
+                "query": query,
+                "answer": answer_text,
+                "timestamp": datetime.now().strftime("%I:%M %p"),
+                "decision": decision_label,
+                "subject": subject,
+            },
+        )
+        st.session_state.history = st.session_state.history[:5]
+
         # --------------------------
         # UI Rendering
         # --------------------------
-        st.subheader("Results")
-        st.markdown(f"**Your Question**: {query}")
-        
-        # Display Subject Badge
-        st.markdown(f"**Subject**: `{subject}`")
-        if not is_fallback:
-            st.markdown(f"**Confidence**: `{round(confidence * 100, 2)}%`")
-        else:
-            st.markdown(f"**Confidence**: `AI Fallback`")
+        st.markdown('<div class="section-label">Results</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="mini-note"><strong>Your Question:</strong> {html.escape(query)}</div>',
+            unsafe_allow_html=True,
+        )
+
+        metric_cols = st.columns(3)
+        with metric_cols[0]:
+            render_stat_card("Subject", subject)
+        with metric_cols[1]:
+            render_stat_card(
+                "Confidence",
+                f"{round(confidence * 100, 2)}%" if not is_fallback else "AI Fallback",
+            )
+        with metric_cols[2]:
+            render_stat_card("Decision", decision_label)
         
         # DEBUG OUTPUT
         with st.expander("🛠️ Advanced Debug Info"):
@@ -342,20 +702,21 @@ Text:
 
         # Decision Output
         st.markdown("---")
-        st.markdown(f"**Decision**: `{decision_label}`")
-        st.markdown(f"**Source Tag**: *{source_tag}*")
-        
-        st.markdown("### 📘 Answer:")
+        st.markdown(
+            f'<div class="mini-note"><strong>Source Tag:</strong> {html.escape(source_tag)}</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown("### Answer")
         
         # Visual color cue for the answer output
         if is_fallback:
             if ollama_response_failed(answer_text):
-                st.error(fallback_unavailable_message())
+                render_notice(fallback_unavailable_message(), tone="error")
             else:
-                st.info(answer_text)
-            st.warning("Low confidence answer. Try rephrasing your query or upload better documents.")
+                render_answer_card(answer_text, "fallback")
+            render_notice("Low confidence answer. Try rephrasing your query or upload better documents.")
         else:
-            st.success(answer_text)
+            render_answer_card(answer_text, "retrieval")
             
         # Try clipboard standard
         try:
